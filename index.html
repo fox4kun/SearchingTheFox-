@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Searching for the Fox</title>
+    <style>
+        :root {
+            --fox-orange: #FF6B35;
+            --dark-bg: #1A1A1A;
+            --card-bg: #2A2A2A;
+            --accent-red: #8B0000;
+            --text-light: #F5F5F5;
+        }
+
+        /*   */
+        body {
+            margin: 0;
+            background: linear-gradient(135deg, var(--dark-bg), #000);
+            color: var(--text-light);
+            font-family: 'Arial', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /*     */
+        .main-header {
+            text-align: center;
+            padding: 4rem 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .fox-title {
+            font-size: 3.5rem;
+            background: linear-gradient(45deg, var(--fox-orange), #FF4500);
+            -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+            position: relative;
+            display: inline-block;
+        }
+
+        .fox-title::after {
+            content: '';
+            position: absolute;
+            right: -50px;
+            top: -15px;
+            font-size: 4rem;
+            filter: drop-shadow(0 0 15px var(--fox-orange));
+            animation: foxJump 2s infinite;
+        }
+
+        @keyframes foxJump {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        /*   */
+        .chapters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .chapter-card {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid transparent;
+        }
+
+        .chapter-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 25px var(--fox-orange));
+            border-color: var(--fox-orange);
+        }
+
+        .chapter-card::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent, rgba(255,107,53,0.1));
+            top: 0;
+            left: 0;
+        }
+
+        /*   */
+        .viewer-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            display: none;
+            z-index: 1000;
+        }
+
+        /*   */
+        .flip-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .flip-page {
+            max-width: 90%;
+            max-height: 90vh;
+            box-shadow: 0 0 30px rgba(255,107,53,0.3);
+            border-radius: 5px;
+        }
+
+        /*    */
+        .continuous-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+            overflow-y: auto;
+            height: 100vh;
+        }
+
+        .continuous-page {
+            width: 100%;
+            max-width: 800px;
+            margin: 1rem 0;
+            border-radius: 5px;
+        }
+
+        /*   */
+        .controls {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 1rem;
+        }
+
+        .control-btn {
+            background: var(--fox-orange);
+            border: none;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px var(--fox-orange));
+        }
+
+        /*   */
+        @media (max-width: 768px) {
+            .fox-title {
+                font-size: 2.5rem;
+            }
+
+            .chapters-grid {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+
+            .flip-page {
+                max-width: 100%;
+            }
+
+            .controls {
+                bottom: 1rem;
+                width: 90%;
+                justify-content: space-between;
+            }
+
+            .control-btn {
+                padding: 0.8rem 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="main-header">
+        <h1 class="fox-title">Searching  The Fox Manga</h1>
+    </header>
+
+    <div class="chapters-grid">
+        <div class="chapter-card" data-chapter="1">
+            <h2>Chapter 1</h2>
+            <p></p>
+        </div>
+        <div class="chapter-card" data-chapter="2">
+            <h2>Chapter 2</h2>
+            <p></p>
+        </div>
+        <div class="chapter-card" data-chapter="3">
+            <h2>Chapter 3</h2>
+            <p></p>
+        </div>
+    </div>
+
+    <div class="viewer-overlay" id="viewer">
+        <div class="flip-container">
+            <img class="flip-page" id="currentPage" alt="Manga page">
+        </div>
+        <div class="continuous-container" id="continuousMode"></div>
+        
+        <div class="controls">
+            <button class="control-btn" onclick="changePage(-1)">Previous</button>
+            <button class="control-btn" onclick="changePage(1)">Next</button>
+            <button class="control-btn" onclick="closeViewer()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        let currentChapter = 1;
+        let currentPage = 1;
+        const totalPages = {
+            1: 15,
+            2: 20,
+            3: 18
+        };
+
+        //   
+        document.querySelectorAll('.chapter-card').forEach(card => {
+            card.addEventListener('click', () => {
+                currentChapter = parseInt(card.dataset.chapter);
+                currentPage = 1;
+                openViewer();
+            });
+        });
+
+        function openViewer() {
+            document.getElementById('viewer').style.display = 'block';
+            loadPage();
+        }
+
+        function closeViewer() {
+            document.getElementById('viewer').style.display = 'none';
+        }
+
+        async function loadPage() {
+            const img = document.getElementById('currentPage');
+            img.src = `chapters/${currentChapter}/${currentPage}.jpg`;
+            
+            //    
+            if(currentPage < totalPages[currentChapter]) {
+                new Image().src = `chapters/${currentChapter}/${currentPage + 1}.jpg`;
+            }
+        }
+
+        function changePage(step) {
+            const newPage = currentPage + step;
+            if(newPage < 1 || newPage > totalPages[currentChapter]) return;
+            
+            currentPage = newPage;
+            loadPage();
+        }
+
+        //  
+        document.addEventListener('keydown', (e) => {
+            if(e.key === 'ArrowLeft') changePage(-1);
+            if(e.key === 'ArrowRight') changePage(1);
+            if(e.key === 'Escape') closeViewer();
+        });
+
+        //  
+        let touchStartX = 0;
+        document.addEventListener('touchstart', e => {
+            touchStartX = e.touches[0].clientX;
+        });
+
+        document.addEventListener('touchend', e => {
+            const touchEndX = e.changedTouches[0].clientX;
+            const diff = touchStartX - touchEndX;
+            
+            if(Math.abs(diff) > 50) {
+                diff > 0 ? changePage(1) : changePage(-1);
+            }
+        });
+    </script>
+</body>
+</html>
